@@ -12,26 +12,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/cluster")
 public class ClusterController {
 
+  @Autowired
   private ClusterService clusterService;
 
-  @Autowired
-  ClusterController(ClusterService clusterService) {
-    this.clusterService = clusterService;
-  }
-
-  @GetMapping(value = "/addNewNode")
-  public String  addNewNodeToRedisController(@RequestParam String newRedisHost,
+  @GetMapping(value = "/addNode")
+  public String addNewNodeToRedisController(@RequestParam String newRedisHost,
       @RequestParam String newRedisPort, @RequestParam String clusterHost,
       @RequestParam String clusterPort, @RequestParam Boolean isSlave,
-      @RequestParam(required = false) String masterId ,@RequestParam Boolean isNeedRebalance) {
+      @RequestParam(required = false) String masterId, @RequestParam Boolean isNeedRebalance,
+      @RequestParam String username, @RequestParam String password) {
     return clusterService.addNewNodeToCLuster(newRedisHost, newRedisPort, clusterHost, clusterPort,
-        isSlave, masterId,isNeedRebalance);
+        isSlave, masterId, isNeedRebalance, username, password);
   }
 
-  @GetMapping(value = "/clusterRebalance")
-  public String clusterRebalance(@RequestParam String clusterHost, @RequestParam String  clusterPort
-  , @RequestParam Boolean isEmptySlotReBalance) {
-    return clusterService.clusterRebalance(clusterHost,clusterPort,isEmptySlotReBalance);
+  @GetMapping(value = "/rebalance")
+  public String clusterRebalance(@RequestParam String clusterHost, @RequestParam String clusterPort,
+      @RequestParam Boolean isEmptySlotReBalance, @RequestParam String username,
+      @RequestParam String password) {
+    return clusterService.clusterRebalance(clusterHost, clusterPort, isEmptySlotReBalance, username,
+        password);
   }
 
 }

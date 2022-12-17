@@ -6,26 +6,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static com.blibli.caas.service.SshCommandExecutorService.SSH_DEFAULT_PORT;
+
 @Service
 @Slf4j
-public class ExecuteCommandOnRemoteMachineServiceImpl implements
-    ExecuteCommandOnRemoteMachineService {
+public class ExecuteCommandOnRemoteMachineServiceImpl
+    implements ExecuteCommandOnRemoteMachineService {
 
-  private SshCommandExecutorService sshCommandExecutorService;
   @Autowired
-  void ExecuteCommandOnRemoteMachineService(SshCommandExecutorService sshCommandExecutorService) {
-    this.sshCommandExecutorService = sshCommandExecutorService;
-  }
+  private SshCommandExecutorService sshCommandExecutorService;
 
   @Override
-  public String executeCommandOnRemoteMachine(String command, String targetHost,
-      String targetPort) {
-    String userName = "krishankumarrao";
-    String password = "1234";
+  public String executeCommandOnRemoteMachine(String command, String targetHost, String targetPort,
+      String username, String password) {
+
     String commandOutput = "";
     try {
-      commandOutput = sshCommandExecutorService.executeCommandOnRemoteMachineViaSSH(targetHost,
-          22, userName, password, command);
+      commandOutput =
+          sshCommandExecutorService.executeCommandOnRemoteMachineViaSSHUsingJSchLibrary(targetHost,
+              SSH_DEFAULT_PORT, username, password, command);
     } catch (Exception e) {
       log.error("getting error", e);
     }

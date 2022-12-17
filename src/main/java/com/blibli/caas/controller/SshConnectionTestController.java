@@ -20,10 +20,9 @@ public class SshConnectionTestController {
 
   @GetMapping(TEST_CONNECTION + "/executeCommand")
   public String testSshConnectionWithCommand(@RequestParam String host, @RequestParam Integer port,
-      @RequestParam String username, @RequestParam String password, @RequestParam String command)
-      throws Exception {
+      @RequestParam String username, @RequestParam String password, @RequestParam String command) {
 
-    return sshCommandExecutorService.executeCommandOnRemoteMachineViaSSH(host, port, username,
-        password, command);
+    return sshCommandExecutorService.executeCommandOnRemoteMachineViaSSHUsingJSchLibrary(host, port,
+        username, password, command);
   }
 }
