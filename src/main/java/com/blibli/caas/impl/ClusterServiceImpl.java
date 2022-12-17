@@ -1,4 +1,4 @@
-package com.blibli.caas.serviceImpl;
+package com.blibli.caas.impl;
 
 import com.blibli.caas.constant.CommandsKeyword;
 import com.blibli.caas.service.ClusterService;
@@ -30,6 +30,7 @@ public class ClusterServiceImpl implements ClusterService {
         addNodeCommand = addNodeCommand + " " + CommandsKeyword.CLUSTER_MASTER_ID + " " + masterId;
       }
     }
+    log.info("add node command = {}",addNodeCommand);
     String addNodeOutput =
         executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(addNodeCommand,
             clusterHost, clusterPort);
@@ -50,6 +51,7 @@ public class ClusterServiceImpl implements ClusterService {
     if(isEmptySlotReBalance) {
       clusterRebalanceCommand = clusterRebalanceCommand + " " + CommandsKeyword.USE_EMPTY_MASTER;
     }
+    log.info("rebalance command = {}",clusterRebalanceCommand);
     return
         executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(clusterRebalanceCommand,
             clusterHost, clusterPort);

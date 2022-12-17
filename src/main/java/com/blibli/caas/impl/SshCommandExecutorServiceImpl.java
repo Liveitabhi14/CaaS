@@ -27,7 +27,7 @@ public class SshCommandExecutorServiceImpl implements SshCommandExecutorService 
       session.setConfig("StrictHostKeyChecking", "no");
       session.connect();
 
-      channel = (ChannelExec) session.openChannel("exec");
+      channel = (ChannelExec) session.openChannel("sftp");
       channel.setCommand(command);
       ByteArrayOutputStream responseStream = new ByteArrayOutputStream();
       channel.setOutputStream(responseStream);

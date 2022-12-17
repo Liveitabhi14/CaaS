@@ -23,7 +23,7 @@ public class ClusterController {
   public String  addNewNodeToRedisController(@RequestParam String newRedisHost,
       @RequestParam String newRedisPort, @RequestParam String clusterHost,
       @RequestParam String clusterPort, @RequestParam Boolean isSlave,
-      @RequestParam String masterId,@RequestParam Boolean isNeedRebalance) {
+      @RequestParam(required = false) String masterId ,@RequestParam Boolean isNeedRebalance) {
     return clusterService.addNewNodeToCLuster(newRedisHost, newRedisPort, clusterHost, clusterPort,
         isSlave, masterId,isNeedRebalance);
   }
