@@ -1,5 +1,9 @@
 package com.blibli.caas.service;
 
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
+
+import java.util.List;
+
 public interface ClusterService {
 
   String addNewNodeToCLuster(String newRedisHost, String newRedisPort, String clusterHost,
@@ -22,6 +26,4 @@ public interface ClusterService {
   Integer countSlotsInNode(String clusterHost, Integer clusterPort, String nodeId);
 
   String clusterResetHard(String clusterHost, int clusterPort);
-
-  String flushDb(String clusterHost, int clusterPort);
 }
