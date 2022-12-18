@@ -12,8 +12,8 @@ public interface ClusterService {
   String reshardHashSlotsBetweenNodes(String clusterHost, String clusterPort, String sourceNodeId,
       String targetNodeId, int noOfSlots, String username, String password);
 
-  String deleteNodeFromCluster(String clusterHost, String clusterPort, String nodeId,
-      String username, String password);
+  String deleteNodeFromCluster(String clusterHost, String clusterPort, String deleteNodeHost,
+      Integer deleteNodePort, String username, String password);
 
   String getClusterInfo(String clusterHost, Integer clusterPort);
 
@@ -22,4 +22,6 @@ public interface ClusterService {
   Integer countSlotsInNode(String clusterHost, Integer clusterPort, String nodeId);
 
   String clusterResetHard(String clusterHost, int clusterPort);
+
+  String flushDb(String clusterHost, int clusterPort);
 }

@@ -81,7 +81,7 @@ public class ClusterServiceImpl implements ClusterService {
 
     String reshardHashSlotsCommand =
         CommandsKeyword.REDIS_CLI_CLUSTER + " " + CommandsKeyword.RESHARD + " " + clusterHost + ":"
-            + clusterPort + CommandsKeyword.CLUSTER_FROM + " " + sourceNodeId + " "
+            + clusterPort + " " + CommandsKeyword.CLUSTER_FROM + " " + sourceNodeId + " "
             + CommandsKeyword.CLUSTER_TO + " " + targetNodeId + " " + CommandsKeyword.CLUSTER_SLOTS
             + " " + noOfSlots + " " + CommandsKeyword.CLUSTER_YES;
     log.info("reshard hash slots command = {}", reshardHashSlotsCommand);
@@ -90,20 +90,22 @@ public class ClusterServiceImpl implements ClusterService {
   }
 
   @Override
-  public String deleteNodeFromCluster(String clusterHost, String clusterPort, String nodeId,
-      String username, String password) {
+  public String deleteNodeFromCluster(String clusterHost, String clusterPort, String deleteNodeHost,
+      Integer deleteNodePort, String username, String password) {
+
+    String sourceNodeId = getNodeIdInCluster(deleteNodeHost, deleteNodePort);
 
     //Reshard all slots from node to be deleted to a master
     String targetNodeId = getNodeIdInCluster(clusterHost, Integer.parseInt(clusterPort));
-    int noOfSlots = countSlotsInNode(clusterHost, Integer.parseInt(clusterPort), nodeId);
+    int noOfSlots = countSlotsInNode(clusterHost, Integer.parseInt(clusterPort), sourceNodeId);
     String reshardOutput =
-        reshardHashSlotsBetweenNodes(clusterHost, clusterPort, nodeId, targetNodeId, noOfSlots,
+        reshardHashSlotsBetweenNodes(clusterHost, clusterPort, sourceNodeId, targetNodeId, noOfSlots,
             username, password);
 
     //Delete the node
     String deleteNodeCommand =
-        CommandsKeyword.REDIS_CLI_CLUSTER + " " + CommandsKeyword.DELETE_NODE + clusterHost + ":"
-            + clusterPort + " " + nodeId;
+        CommandsKeyword.REDIS_CLI_CLUSTER + " " + CommandsKeyword.DELETE_NODE + " " + clusterHost + ":"
+            + clusterPort + " " + sourceNodeId;
     log.info("delete node command = {}", deleteNodeCommand);
     String deleteNodeOutput =
         executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(deleteNodeCommand,
@@ -114,8 +116,7 @@ public class ClusterServiceImpl implements ClusterService {
         clusterRebalance(clusterHost, clusterPort, false, username, password);
 
     //Cluster reset hard for deleted node
-    String nodeResetOutput =
-        clusterResetHard(clusterHost, Integer.parseInt(clusterPort));
+    String nodeResetOutput = clusterResetHard(deleteNodeHost, deleteNodePort);
 
     return reshardOutput + deleteNodeOutput + clusterRebalanceOutput + nodeResetOutput;
   }
@@ -165,10 +166,21 @@ public class ClusterServiceImpl implements ClusterService {
   @Override
   public String clusterResetHard(String clusterHost, int clusterPort) {
     try(Jedis jedis = new Jedis(new HostAndPort(clusterHost,clusterPort))) {
+      log.info("ready to cluster reset");
       return jedis.clusterReset(ClusterResetType.HARD);
     } catch (Exception e) {
       log.error("error while connecting with jedis, host = {}, port = {}",clusterHost,clusterPort,e);
       return "error while reset hard";
+    }
+  }
+
+  @Override
+  public String flushDb(String clusterHost, int clusterPort) {
+    try(Jedis jedis = new Jedis(new HostAndPort(clusterHost,clusterPort))) {
+      return jedis.flushDB();
+    } catch (Exception e) {
+      log.error("error while connecting with jedis, host = {}, port = {}",clusterHost,clusterPort,e);
+      return "error while  flushdb";
     }
   }
 

@@ -43,9 +43,9 @@ public class ClusterController {
 
   @GetMapping(value = "/deleteNode")
   public String deleteNodeFromCluster(@RequestParam String clusterHost,
-      @RequestParam String clusterPort, @RequestParam String nodeId, @RequestParam String username,
+      @RequestParam String clusterPort, @RequestParam String deleteNodeHost, @RequestParam Integer deleteNodePort, @RequestParam String username,
       @RequestParam String password) {
-    return clusterService.deleteNodeFromCluster(clusterHost, clusterPort, nodeId, username,
+    return clusterService.deleteNodeFromCluster(clusterHost, clusterPort, deleteNodeHost, deleteNodePort, username,
         password);
   }
 
@@ -69,6 +69,11 @@ public class ClusterController {
   @GetMapping(value = "/resetHard")
   public String resetHard(@RequestParam String clusterHost, @RequestParam Integer clusterPort) {
     return clusterService.clusterResetHard(clusterHost,clusterPort);
+  }
+
+  @GetMapping(value = "/flushDb")
+  public String flushDb(@RequestParam String clusterHost, @RequestParam Integer clusterPort) {
+    return clusterService.flushDb(clusterHost,clusterPort);
   }
 
 }
