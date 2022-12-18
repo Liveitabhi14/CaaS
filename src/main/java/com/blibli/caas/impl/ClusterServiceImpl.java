@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.args.ClusterResetType;
 import redis.clients.jedis.JedisCluster;
 
 import java.net.URI;
@@ -33,6 +34,18 @@ public class ClusterServiceImpl implements ClusterService {
   @Value("${redis.uri.node}")
   private String redisUriNode;
 
+  @Value("${caas.add.node.ssh.command.execution.timeout}")
+  private int addNodeCommandExecutionTimeout;
+
+  @Value("${caas.delete.node.ssh.command.execution.timeout}")
+  private int deleteNodeCommandExecutionTimeout;
+
+  @Value("${caas.rebalance.cluster.ssh.command.execution.timeout}")
+  private int rebalanceClusterCommandExecutionTimeout;
+
+  @Value("${caas.reshard.node.ssh.command.execution.timeout}")
+  private int reshardNodeCommandExecutionTimeout;
+
   @Override
   public String addNewNodeToCLuster(String newRedisHost, String newRedisPort, String clusterHost,
       String clusterPort, boolean isSlave, String masterId, Boolean isNeedRebalance,
@@ -49,7 +62,7 @@ public class ClusterServiceImpl implements ClusterService {
     log.info("add node command = {}", addNodeCommand);
     String addNodeOutput =
         executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(addNodeCommand,
-            clusterHost, clusterPort, username, password);
+            clusterHost, clusterPort, username, password,addNodeCommandExecutionTimeout);
     String clusterRebalanceOutput = "";
     if (isNeedRebalance) {
       clusterRebalanceOutput = clusterRebalance(clusterHost, clusterPort, true, username, password);
@@ -70,7 +83,7 @@ public class ClusterServiceImpl implements ClusterService {
     }
     log.info("rebalance command = {}", clusterRebalanceCommand);
     return executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(
-        clusterRebalanceCommand, clusterHost, clusterPort, username, password);
+        clusterRebalanceCommand, clusterHost, clusterPort, username, password,rebalanceClusterCommandExecutionTimeout);
   }
 
   @Override
@@ -84,7 +97,7 @@ public class ClusterServiceImpl implements ClusterService {
             + " " + noOfSlots + " " + CommandsKeyword.CLUSTER_YES;
     log.info("reshard hash slots command = {}", reshardHashSlotsCommand);
     return executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(
-        reshardHashSlotsCommand, clusterHost, clusterPort, username, password);
+        reshardHashSlotsCommand, clusterHost, clusterPort, username, password,reshardNodeCommandExecutionTimeout);
   }
 
   @Override
@@ -105,15 +118,15 @@ public class ClusterServiceImpl implements ClusterService {
     log.info("delete node command = {}", deleteNodeCommand);
     String deleteNodeOutput =
         executeCommandOnRemoteMachineService.executeCommandOnRemoteMachine(deleteNodeCommand,
-            clusterHost, clusterPort, username, password);
+            clusterHost, clusterPort, username, password,deleteNodeCommandExecutionTimeout);
 
     //Rebalance
     String clusterRebalanceOutput =
         clusterRebalance(clusterHost, clusterPort, false, username, password);
 
     //Cluster reset hard for deleted node
-    //todo - add logic
-    String nodeResetOutput = "";
+    String nodeResetOutput =
+        clusterResetHard(clusterHost, Integer.parseInt(clusterPort));
 
     return reshardOutput + deleteNodeOutput + clusterRebalanceOutput + nodeResetOutput;
   }
@@ -171,4 +184,15 @@ public class ClusterServiceImpl implements ClusterService {
       return null;
     }
   }
+
+  @Override
+  public String clusterResetHard(String clusterHost, int clusterPort) {
+    try(Jedis jedis = new Jedis(new HostAndPort(clusterHost,clusterPort))) {
+      return jedis.clusterReset(ClusterResetType.HARD);
+    } catch (Exception e) {
+      log.error("error while connecting with jedis, host = {}, port = {}",clusterHost,clusterPort,e);
+      return "error while reset hard";
+    }
+  }
+
 }

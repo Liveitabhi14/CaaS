@@ -64,7 +64,7 @@ public class ClusterController {
     return clusterService.getNodeIdInCluster(clusterHost, clusterPort);
   }
 
-  @GetMapping(value = "hashSlot/countInNode")
+  @GetMapping(value = "/hashSlot/countInNode")
   public Integer countHashSlotsInNode(@RequestParam String clusterHost,
       @RequestParam Integer clusterPort, @RequestParam String nodeId) {
     return clusterService.countSlotsInNode(clusterHost, clusterPort, nodeId);
@@ -75,4 +75,10 @@ public class ClusterController {
     metricService.checkNodeMemory(username,password);
     return "true";
   }
+
+  @GetMapping(value = "/resetHard")
+  public String resetHard(@RequestParam String clusterHost, @RequestParam Integer clusterPort) {
+    return clusterService.clusterResetHard(clusterHost,clusterPort);
+  }
+
 }
