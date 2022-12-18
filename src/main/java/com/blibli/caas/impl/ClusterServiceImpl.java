@@ -7,6 +7,7 @@ import io.lettuce.core.RedisURI;
 import io.lettuce.core.cluster.RedisClusterClient;
 import io.lettuce.core.cluster.RedisClusterURIUtil;
 import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.models.partitions.Partitions;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -151,12 +152,13 @@ public class ClusterServiceImpl implements ClusterService {
     }
   }
  public  List<RedisClusterNode> getClusterNode(){
+   StatefulRedisClusterConnection<String, String> connection;
    try  {
      log.info("Connection to via redis cluster client to get cluster nodes");
      List<RedisURI> redisURI =
          RedisClusterURIUtil.toRedisURIs(URI.create(redisUriNode));
-     RedisClusterClient redisClusterClient = RedisClusterClient.create(redisURI);
-     StatefulRedisClusterConnection<String, String> connection = redisClusterClient.connect();
+     RedisClusterClient redisClusterClient = RedisClusterClient.create(redisUriNode);
+     connection = redisClusterClient.connect();
      return connection.getPartitions().getPartitions();
    } catch (Exception e) {
      log.error("Error connecting to cluster via RedisUri : {}; {}", e, e.getMessage());

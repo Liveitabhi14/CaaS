@@ -15,8 +15,8 @@ public class NodeStats implements Serializable {
   private String host;
   private String port;
   private String nodeId;
-  private long usedMemory;
-  private long totalMemory;
+  private double usedMemory;
+  private double totalMemory;
   private double usedCPU;
   private double totalCPU;
 }
