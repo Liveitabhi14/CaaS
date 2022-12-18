@@ -1,6 +1,7 @@
 package com.blibli.caas.controller;
 
 import com.blibli.caas.service.ClusterService;
+import com.blibli.caas.service.MetricService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +15,9 @@ public class ClusterController {
 
   @Autowired
   private ClusterService clusterService;
+
+  @Autowired
+  private MetricService metricService;
 
   @GetMapping(value = "/addNode")
   public String addNodeToCluster(@RequestParam String newRedisHost,
@@ -64,5 +68,11 @@ public class ClusterController {
   public Integer countHashSlotsInNode(@RequestParam String clusterHost,
       @RequestParam Integer clusterPort, @RequestParam String nodeId) {
     return clusterService.countSlotsInNode(clusterHost, clusterPort, nodeId);
+  }
+
+  @GetMapping(value = "/ExecuteNodeInfo")
+  public String executeNodeInfo(@RequestParam String username,@RequestParam String password){
+    metricService.checkNodeMemory(username,password);
+    return "true";
   }
 }

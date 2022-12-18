@@ -3,15 +3,24 @@ package com.blibli.caas.impl;
 import com.blibli.caas.constant.CommandsKeyword;
 import com.blibli.caas.service.ClusterService;
 import com.blibli.caas.service.ExecuteCommandOnRemoteMachineService;
+import io.lettuce.core.RedisURI;
+import io.lettuce.core.cluster.RedisClusterClient;
+import io.lettuce.core.cluster.RedisClusterURIUtil;
+import io.lettuce.core.cluster.api.StatefulRedisClusterConnection;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -20,6 +29,9 @@ public class ClusterServiceImpl implements ClusterService {
 
   @Autowired
   private ExecuteCommandOnRemoteMachineService executeCommandOnRemoteMachineService;
+
+  @Value("${redis.uri.node}")
+  private String redisUriNode;
 
   @Override
   public String addNewNodeToCLuster(String newRedisHost, String newRedisPort, String clusterHost,
@@ -125,7 +137,19 @@ public class ClusterServiceImpl implements ClusterService {
       return null;
     }
   }
-
+ public  List<RedisClusterNode> getClusterNode(){
+   try  {
+     log.info("Connection to via redis cluster client to get cluster nodes");
+     List<RedisURI> redisURI =
+         RedisClusterURIUtil.toRedisURIs(URI.create(redisUriNode));
+     RedisClusterClient redisClusterClient = RedisClusterClient.create(redisURI);
+     StatefulRedisClusterConnection<String, String> connection = redisClusterClient.connect();
+     return connection.getPartitions().getPartitions();
+   } catch (Exception e) {
+     log.error("Error connecting to cluster via RedisUri : {}; {}", e, e.getMessage());
+     return null;
+   }
+ }
   @Override
   public Integer countSlotsInNode(String clusterHost, Integer clusterPort, String nodeId) {
     try (Jedis jedis = new Jedis(new HostAndPort(clusterHost, clusterPort))) {
