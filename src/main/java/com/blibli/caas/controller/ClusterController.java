@@ -1,12 +1,16 @@
 package com.blibli.caas.controller;
 
+import com.blibli.caas.DTO.NodeStats;
 import com.blibli.caas.service.ClusterService;
 import com.blibli.caas.service.MetricService;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 
 @RestController
@@ -72,7 +76,7 @@ public class ClusterController {
 
   @GetMapping(value = "/ExecuteNodeInfo")
   public String executeNodeInfo(@RequestParam String username,@RequestParam String password){
-    metricService.checkNodeMemory(username,password);
+    List<NodeStats> redisClusterNodes = metricService.checkNodeMemory(username,password, false);
     return "true";
   }
 

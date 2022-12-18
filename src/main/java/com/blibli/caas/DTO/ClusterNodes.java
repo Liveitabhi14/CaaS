@@ -1,25 +1,26 @@
 package com.blibli.caas.DTO;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.BitSet;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class NodeStats implements Serializable {
-  private String host;
-  private String port;
+@Builder
+public class ClusterNodes implements Serializable {
+
+  private String nodeHostPort;
   private String nodeId;
-  private long usedMemory;
+  private BitSet slots;
   private long totalMemory;
-  private double usedCPU;
-  private double totalCPU;
+  private long usedMemory;
+  private String masterNodeHostPort;
   private boolean isSlave;
-  private String masterHost;
-  private String masterPort;
+
 }

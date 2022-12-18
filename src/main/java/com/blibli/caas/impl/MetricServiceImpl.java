@@ -1,5 +1,6 @@
 package com.blibli.caas.impl;
 
+import com.blibli.caas.DTO.ClusterNodes;
 import com.blibli.caas.DTO.NodeStats;
 import com.blibli.caas.service.ClusterService;
 import com.blibli.caas.service.ExecuteCommandOnRemoteMachineService;
@@ -20,6 +21,10 @@ import java.util.Objects;
 @Slf4j
 @Service
 public class MetricServiceImpl implements MetricService {
+  public static final String MASTER = "master";
+  public static final String ROLE = "role";
+  public static final String MASTER_HOST = "master_host";
+  public static final String MASTER_PORT = "master_port";
   @Autowired
   private ClusterService clusterService;
 
@@ -31,25 +36,31 @@ public class MetricServiceImpl implements MetricService {
   @Value("${memory_threshold_in_percent}")
   private String memoryThreshold;
 
+  @Value("${system.user.name}")
+  private String userName;
+
+  @Value("${system.user.password}")
+  private String password;
+
   private static final String USED_MEMORY = "used_memory";
   private static final String TOTAL_MEMORY = "total_system_memory";
   private static final String USED_CPU = "used_cpu_user";
 
   @Override
-  public void checkNodeMemory(String userName, String password) {
+  public List<NodeStats> checkNodeMemory(String userName, String password, boolean isAllData) {
     List<RedisClusterNode> redisClusterNodeList = clusterService.getClusterNode();
     log.info("node INfo - {}", redisClusterNodeList.toString());
     List<NodeStats> nodeStatsList = new ArrayList<>();
 
 
     for (RedisClusterNode redisClusterNode : redisClusterNodeList) {
-      if (Objects.nonNull(redisClusterNode.getSlaveOf())) {
+      if (isAllData || Objects.isNull(redisClusterNode.getSlaveOf())) {
 
         Connection connection = new Connection(redisClusterNode.getUri().getHost(),
             redisClusterNode.getUri().getPort());
         log.info(" host - {} and port - {} ", redisClusterNode.getUri().getHost(),
             redisClusterNode.getUri().getPort());
-        connection.sendCommand(Protocol.Command.INFO, "cpu", "memory");
+        connection.sendCommand(Protocol.Command.INFO, "cpu", "memory", "Replication");
 
         String info = connection.getBulkReply();
 
@@ -63,7 +74,25 @@ public class MetricServiceImpl implements MetricService {
       }
     }
 
-    checkNodeForUtilizationThreshold(nodeStatsList);
+    //checkNodeForUtilizationThreshold(nodeStatsList);
+    return nodeStatsList;
+  }
+
+  @Override
+  public List<ClusterNodes> getAllNodeInfo() {
+    List<NodeStats> redisClusterNodes =  checkNodeMemory(userName, password, true);
+    return createClusterNodes(redisClusterNodes);
+  }
+
+  private List<ClusterNodes> createClusterNodes(List<NodeStats> redisClusterNodes) {
+    List<ClusterNodes> clusterNodesList = new ArrayList<>();
+    for (NodeStats nodeStats : redisClusterNodes) {
+      clusterNodesList.add(ClusterNodes.builder().nodeHostPort(nodeStats.getHost() + ":" + nodeStats.getPort())
+          .nodeId(nodeStats.getNodeId()).isSlave(nodeStats.isSlave())
+          .usedMemory(nodeStats.getUsedMemory()).totalMemory(nodeStats.getTotalMemory())
+          .masterNodeHostPort(nodeStats.getMasterHost() + ":" + nodeStats.getMasterPort()).build());
+    }
+    return clusterNodesList;
   }
 
   private void checkNodeForUtilizationThreshold(List<NodeStats> nodeStatsList) {
@@ -80,12 +109,24 @@ public class MetricServiceImpl implements MetricService {
       List<String> statSplit = Arrays.asList(stat.split(":"));
       switch (statSplit.get(0)) {
         case USED_MEMORY:
-          nodeStats.setUsedMemory(Long.parseLong(statSplit.get(1)));
+          nodeStats.setUsedMemory(Long.parseLong(statSplit.get(1).replace("\r", "")));
           break;
         case TOTAL_MEMORY:
-          nodeStats.setTotalMemory(Long.parseLong(statSplit.get(1)));
+          nodeStats.setTotalMemory(Long.parseLong(statSplit.get(1).replace("\r", "")));
+          break;
         case USED_CPU:
-          nodeStats.setUsedCPU(Long.parseLong(statSplit.get(1)));
+          nodeStats.setUsedCPU(Double.parseDouble(statSplit.get(1).replace("\r", "")));
+          break;
+        case ROLE:
+          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replace("\r", "")));
+          break;
+        case MASTER_HOST:
+          nodeStats.setMasterHost(statSplit.get(1).replace("\r", ""));
+          break;
+        case MASTER_PORT:
+          nodeStats.setMasterPort(statSplit.get(1).replace("\r", ""));
+          break;
+
       }
     }
   }
