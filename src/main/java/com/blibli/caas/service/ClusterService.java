@@ -20,4 +20,6 @@ public interface ClusterService {
   String getNodeIdInCluster(String nodeHost, Integer nodePort);
 
   Integer countSlotsInNode(String clusterHost, Integer clusterPort, String nodeId);
+
+  String clusterResetHard(String clusterHost, int clusterPort);
 }

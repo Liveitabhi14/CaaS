@@ -18,13 +18,13 @@ public class ExecuteCommandOnRemoteMachineServiceImpl
 
   @Override
   public String executeCommandOnRemoteMachine(String command, String targetHost, String targetPort,
-      String username, String password) {
+      String username, String password, Integer timeout) {
 
     String commandOutput = "";
     try {
       commandOutput =
           sshCommandExecutorService.executeCommandOnRemoteMachineViaSSHUsingJSchLibrary(targetHost,
-              SSH_DEFAULT_PORT, username, password, command);
+              SSH_DEFAULT_PORT, username, password, command,timeout);
     } catch (Exception e) {
       log.error("getting error", e);
     }
