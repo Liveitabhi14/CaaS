@@ -26,4 +26,8 @@ public interface ClusterService {
   Integer countSlotsInNode(String clusterHost, Integer clusterPort, String nodeId);
 
   String clusterResetHard(String clusterHost, int clusterPort);
+
+  List<RedisClusterNode> getClusterNode();
+
+  String flushDb(String clusterHost, int clusterPort);
 }

@@ -10,11 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import redis.clients.jedis.Connection;
 import redis.clients.jedis.Protocol;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -50,7 +52,6 @@ public class MetricServiceImpl implements MetricService {
   private static final String USED_MEMORY = "used_memory";
   private static final String TOTAL_MEMORY = "total_system_memory";
   private static final String USED_CPU = "used_cpu_user";
-  private static boolean runCheck = true;
 
   @Override
   public void checkNodeMemory(String userName, String password) {
@@ -86,7 +87,6 @@ public class MetricServiceImpl implements MetricService {
 
     } catch (Exception exception) {
       log.error("Error in checkMemory - {}", exception.getCause().toString());
-      runCheck = true;
     }
 
   }
@@ -120,9 +120,17 @@ public class MetricServiceImpl implements MetricService {
         removeNodeList.add(nodeStats);
       }
     }
-    for (NodeStats nodeStats : removeNodeList) {
-      clusterService.deleteNodeFromCluster(nodeStats.getHost(), nodeStats.getPort(),
-          nodeStats.getNodeId(), userName, password);
+    if (!CollectionUtils.isEmpty(removeNodeList)) {
+
+      nodeStatsList.removeAll(removeNodeList);
+      String host = nodeStatsList.get(0).getHost();
+      String port = nodeStatsList.get(0).getPort();
+
+      for (NodeStats nodeStats : removeNodeList) {
+        clusterService.deleteNodeFromCluster(host, port, nodeStats.getHost(),
+            Integer.parseInt(nodeStats.getPort()), userName, password);
+      }
+
     }
 
   }
