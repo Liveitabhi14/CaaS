@@ -16,7 +16,7 @@ public class ClusterController {
   private ClusterService clusterService;
 
   @GetMapping(value = "/addNode")
-  public String addNewNodeToRedisController(@RequestParam String newRedisHost,
+  public String addNodeToCluster(@RequestParam String newRedisHost,
       @RequestParam String newRedisPort, @RequestParam String clusterHost,
       @RequestParam String clusterPort, @RequestParam Boolean isSlave,
       @RequestParam(required = false) String masterId, @RequestParam Boolean isNeedRebalance,
@@ -33,4 +33,36 @@ public class ClusterController {
         password);
   }
 
+  @GetMapping(value = "/hashSlot/reshard")
+  public String reshardHashSlots(@RequestParam String clusterHost, @RequestParam String clusterPort,
+      @RequestParam String sourceNodeId, @RequestParam String targetNodeId,
+      @RequestParam int noOfSlots, @RequestParam String username, @RequestParam String password) {
+    return clusterService.reshardHashSlotsBetweenNodes(clusterHost, clusterPort, sourceNodeId,
+        targetNodeId, noOfSlots, username, password);
+  }
+
+  @GetMapping(value = "/deleteNode")
+  public String deleteNodeFromCluster(@RequestParam String clusterHost,
+      @RequestParam String clusterPort, @RequestParam String nodeId, @RequestParam String username,
+      @RequestParam String password) {
+    return clusterService.deleteNodeFromCluster(clusterHost, clusterPort, nodeId, username,
+        password);
+  }
+
+  @GetMapping(value = "/getInfo")
+  public String getClusterInfo(@RequestParam String clusterHost,
+      @RequestParam Integer clusterPort) {
+    return clusterService.getClusterInfo(clusterHost, clusterPort);
+  }
+
+  @GetMapping(value = "/getNodeId")
+  public String getNodeId(@RequestParam String clusterHost, @RequestParam Integer clusterPort) {
+    return clusterService.getNodeIdInCluster(clusterHost, clusterPort);
+  }
+
+  @GetMapping(value = "hashSlot/countInNode")
+  public Integer countHashSlotsInNode(@RequestParam String clusterHost,
+      @RequestParam Integer clusterPort, @RequestParam String nodeId) {
+    return clusterService.countSlotsInNode(clusterHost, clusterPort, nodeId);
+  }
 }

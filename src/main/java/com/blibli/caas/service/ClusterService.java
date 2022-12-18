@@ -8,4 +8,16 @@ public interface ClusterService {
 
   String clusterRebalance(String clusterHost, String clusterPort, Boolean isEmptySlotReBalance,
       String username, String password);
+
+  String reshardHashSlotsBetweenNodes(String clusterHost, String clusterPort, String sourceNodeId,
+      String targetNodeId, int noOfSlots, String username, String password);
+
+  String deleteNodeFromCluster(String clusterHost, String clusterPort, String nodeId,
+      String username, String password);
+
+  String getClusterInfo(String clusterHost, Integer clusterPort);
+
+  String getNodeIdInCluster(String nodeHost, Integer nodePort);
+
+  Integer countSlotsInNode(String clusterHost, Integer clusterPort, String nodeId);
 }
