@@ -17,7 +17,7 @@ public interface ClusterService {
       String targetNodeId, int noOfSlots, String username, String password);
 
   String deleteNodeFromCluster(String clusterHost, String clusterPort, String deleteNodeHost,
-      Integer deleteNodePort, String username, String password);
+      Integer deleteNodePort, String username, String password, boolean isSlave);
 
   String getClusterInfo(String clusterHost, Integer clusterPort);
 

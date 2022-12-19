@@ -24,4 +24,5 @@ public class NodeStats implements Serializable {
   private String masterHost;
   private String masterPort;
   private int slots;
+  private String masterId;
 }
