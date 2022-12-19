@@ -42,8 +42,6 @@ public class MetricServiceImpl implements MetricService {
   @Autowired
   private ExecuteCommandOnRemoteMachineService executeCommandOnRemoteMachineService;
 
-  @Value("${redis.uri.node}")
-  private String redisUriNode;
   @Value("${ssh.username}")
   private String userName;
 
@@ -100,9 +98,11 @@ public class MetricServiceImpl implements MetricService {
   private Map<String, List<NodeStats>> getSlaveNodeMap(List<NodeStats> nodeStatsList) {
     Map<String, List<NodeStats>> slaveNodeMap = new HashMap<>();
     for (NodeStats nodeStats : nodeStatsList) {
-      List slaveList = slaveNodeMap.getOrDefault(nodeStats.getMasterId(), new ArrayList<>());
-      slaveList.add(nodeStats);
-      slaveNodeMap.put(nodeStats.getMasterId(), slaveList);
+      if(nodeStats.isSlave()) {
+        List slaveList = slaveNodeMap.getOrDefault(nodeStats.getMasterId(), new ArrayList<>());
+        slaveList.add(nodeStats);
+        slaveNodeMap.put(nodeStats.getMasterId(), slaveList);
+      }
     }
     return slaveNodeMap;
   }
@@ -137,7 +137,7 @@ public class MetricServiceImpl implements MetricService {
   }
 
   @Override
-  @Scheduled(fixedDelay = 30000)
+   @Scheduled(fixedDelay = 30000)
   public void scheduleNodeCheck() {
 
     log.info("Starting memory check cron");
@@ -231,9 +231,9 @@ public class MetricServiceImpl implements MetricService {
 
       for (NodeStats nodeStats : removeNodeList) {
 
-        List<NodeStats> slaveNodeList = masterNodeIdToSlaveMap.get(nodeStats.getMasterId());
+        List<NodeStats> slaveNodeList = masterNodeIdToSlaveMap.get(nodeStats.getNodeId());
         if (Objects.nonNull(slaveNodeList)) {
-          for (NodeStats slaveNode : nodeStatsList) {
+          for (NodeStats slaveNode : slaveNodeList) {
             log.info(
                 "Deleting slave node host - {} and port - {} of master - {} using cluster host - {}"
                     + " and port - {}", slaveNode.getHost(), slaveNode.getPort(),
@@ -269,13 +269,13 @@ public class MetricServiceImpl implements MetricService {
               Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
           break;
         case ROLE:
-          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replace("(\\r|\\n|\\t)", "")));
+          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
           break;
         case MASTER_HOST:
-          nodeStats.setMasterHost(getMasterHostMethod(statSplit.get(1).replace("(\\r|\\n|\\t)", "")));
+          nodeStats.setMasterHost(getMasterHostMethod(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
           break;
         case MASTER_PORT:
-          nodeStats.setMasterPort(statSplit.get(1).replace("(\\r|\\n|\\t)", ""));
+          nodeStats.setMasterPort(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", ""));
           break;
         case INSTANTANEOUS_OPS_PER_SEC:
           nodeStats.setInstantaneousOpsPerSec(
@@ -304,7 +304,7 @@ public class MetricServiceImpl implements MetricService {
 
   private String getMasterHostMethod(String replaceHost) {
     if(replaceHost.equals("127.0.0.1")) {
-      return RedisURI.create(redisUriNode).getHost();
+      return primaryRedisHost;
     }
     return replaceHost;
   }
