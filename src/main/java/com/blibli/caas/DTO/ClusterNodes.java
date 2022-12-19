@@ -19,8 +19,8 @@ public class ClusterNodes implements Serializable {
   private String nodeId;
   private long slots;
   private Double memoryUsage;
-  private long usedMemory;
-  private long totalMemory;
+  private double usedMemory;
+  private double totalMemory;
   private String masterNodeHostPort;
   private boolean isSlave;
   private String role;

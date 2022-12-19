@@ -59,13 +59,6 @@ public class MetricServiceImpl implements MetricService {
   @Value("${redis.new.node.port}")
   private String newRedisPort;
 
-
-  @Value("${system.user.name}")
-  private String userName;
-
-  @Value("${system.user.password}")
-  private String password;
-
   private static final String USED_MEMORY = "used_memory";
   private static final String TOTAL_MEMORY = "maxmemory";
   private static final String USED_CPU = "used_cpu_user";
@@ -74,7 +67,7 @@ public class MetricServiceImpl implements MetricService {
   public List<NodeStats> checkNodeMemory(String userName, String password, boolean isAllData) {
     List<NodeStats> nodeStatsList = getNodeStats(isAllData);
 
-    checkNodeForUtilizationThreshold(nodeStatsList);
+    checkNodeForUtilizationThreshold(nodeStatsList,userName,password);
     return nodeStatsList;
   }
 
@@ -111,14 +104,20 @@ public class MetricServiceImpl implements MetricService {
   }
 
   @Override
+  @Scheduled(fixedDelay = 30000)
+  public void scheduleNodeCheck() {
+
+    log.info("Starting memory check cron");
+    checkNodeMemory(userName, password,false);
+
+
+  }
+
+  @Override
   public List<ClusterNodes> getAllNodeInfo() {
     List<NodeStats> redisClusterNodes =  getNodeStats(true);
     return createClusterNodes(redisClusterNodes);
   }
-
-
-
-
 
 
 
@@ -144,11 +143,11 @@ public class MetricServiceImpl implements MetricService {
   private static double getMemoryUsage(NodeStats nodeStats) {
 
     double memoryUsagePercentage =
-        ((double) nodeStats.getUsedMemory() * 100) / (double) nodeStats.getTotalMemory();
+        (nodeStats.getUsedMemory() * 100) / nodeStats.getTotalMemory();
     return BigDecimal.valueOf(memoryUsagePercentage).setScale(2, RoundingMode.CEILING)
         .doubleValue();
 
-
+  }
   private void checkNodeForUtilizationThreshold(List<NodeStats> nodeStatsList, String userName,
       String password) {
     List<NodeStats> removeNodeList = new ArrayList<>();
