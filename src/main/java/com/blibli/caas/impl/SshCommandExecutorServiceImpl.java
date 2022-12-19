@@ -49,8 +49,6 @@ public class SshCommandExecutorServiceImpl implements SshCommandExecutorService 
           if (i < 0)
             break;
           String str = new String(bt, 0, i);
-
-          log.info("Command execution response via JSch library : {}", response);
           response.append(str);
         }
         if (channel.isClosed())
@@ -60,6 +58,7 @@ public class SshCommandExecutorServiceImpl implements SshCommandExecutorService 
         channel.disconnect();
         session.disconnect();
       }
+      log.info("Command execution response via JSch library : {}", response);
     } catch (Exception e) {
       log.error("Encountered exception while executing command : {}", e.getMessage(), e);
     }

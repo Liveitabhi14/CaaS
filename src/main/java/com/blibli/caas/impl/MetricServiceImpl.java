@@ -50,7 +50,7 @@ public class MetricServiceImpl implements MetricService {
 
 
   private static final String USED_MEMORY = "used_memory";
-  private static final String TOTAL_MEMORY = "total_system_memory";
+  private static final String TOTAL_MEMORY = "maxmemory";
   private static final String USED_CPU = "used_cpu_user";
 
   @Override
@@ -77,7 +77,6 @@ public class MetricServiceImpl implements MetricService {
               .host(redisClusterNode.getUri().getHost())
               .port(String.valueOf(redisClusterNode.getUri().getPort())).build();
           convertStats(info, nodeStats);
-
           nodeStatsList.add(nodeStats);
 
         }
@@ -92,7 +91,7 @@ public class MetricServiceImpl implements MetricService {
   }
 
   @Override
-  @Scheduled(fixedDelay = 2000)
+  @Scheduled(fixedDelay = 30000)
   public void scheduleNodeCheck() {
 
     log.info("Starting memory check cron");
@@ -108,13 +107,17 @@ public class MetricServiceImpl implements MetricService {
     for (NodeStats nodeStats : nodeStatsList) {
       if (((nodeStats.getUsedMemory() / nodeStats.getTotalMemory()) * 100) >= Integer.parseInt(
           upperMemoryThreshold)) {
+        log.info(
+            "Adding new node host - {} and port - {} for over utilization on host - {} and port -"
+                + " {}",
+            newRedisHost, newRedisPort, nodeStats.getHost(), nodeStats.getPort());
         clusterService.addNewNodeToCLuster(newRedisHost, newRedisPort, nodeStats.getHost(),
             nodeStats.getPort(), false, nodeStats.getNodeId(), true, userName, password);
         removeNodeList.clear();
         break;
       }
 
-      if (nodeStatsList.size() - removeNodeList.size() >= 2
+      if (nodeStatsList.size() - removeNodeList.size() > 2 && removeNodeList.size()<1
           && ((nodeStats.getUsedMemory() / nodeStats.getTotalMemory()) * 100) <= Integer.parseInt(
           lowerMemoryThreshold)) {
         removeNodeList.add(nodeStats);
@@ -127,6 +130,7 @@ public class MetricServiceImpl implements MetricService {
       String port = nodeStatsList.get(0).getPort();
 
       for (NodeStats nodeStats : removeNodeList) {
+        log.info("Deleting node - {} using cluster host and port - {}:{}",nodeStats.getPort()+nodeStats.getPort(),host,port);
         clusterService.deleteNodeFromCluster(host, port, nodeStats.getHost(),
             Integer.parseInt(nodeStats.getPort()), userName, password);
       }
