@@ -5,6 +5,7 @@ import com.blibli.caas.DTO.NodeStats;
 import com.blibli.caas.service.ClusterService;
 import com.blibli.caas.service.ExecuteCommandOnRemoteMachineService;
 import com.blibli.caas.service.MetricService;
+import io.lettuce.core.RedisURI;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,8 @@ public class MetricServiceImpl implements MetricService {
   @Autowired
   private ExecuteCommandOnRemoteMachineService executeCommandOnRemoteMachineService;
 
+  @Value("${redis.uri.node}")
+  private String redisUriNode;
   @Value("${ssh.username}")
   private String userName;
 
@@ -215,13 +218,13 @@ public class MetricServiceImpl implements MetricService {
               Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
           break;
         case ROLE:
-          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replace("\r", "")));
+          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replace("(\\r|\\n|\\t)", "")));
           break;
         case MASTER_HOST:
-          nodeStats.setMasterHost(statSplit.get(1).replace("\r", ""));
+          nodeStats.setMasterHost(getMasterHostMethod(statSplit.get(1).replace("(\\r|\\n|\\t)", "")));
           break;
         case MASTER_PORT:
-          nodeStats.setMasterPort(statSplit.get(1).replace("\r", ""));
+          nodeStats.setMasterPort(statSplit.get(1).replace("(\\r|\\n|\\t)", ""));
           break;
         case INSTANTANEOUS_OPS_PER_SEC:
           nodeStats.setInstantaneousOpsPerSec(
@@ -247,4 +250,12 @@ public class MetricServiceImpl implements MetricService {
       }
     }
   }
+
+  private String getMasterHostMethod(String replaceHost) {
+    if(replaceHost.equals("127.0.0.1")) {
+      return RedisURI.create(redisUriNode).getHost();
+    }
+    return replaceHost;
+  }
+
 }
