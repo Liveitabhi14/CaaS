@@ -23,5 +23,10 @@ public class NodeStats implements Serializable {
   private boolean isSlave;
   private String masterHost;
   private String masterPort;
+  private double instantaneousOpsPerSec;
+  private double instantaneousInputKbps;
+  private double instantaneousOutputKbps;
+  private double keyspaceMisses;
+  private double keyspaceHits;
   private int slots;
 }
