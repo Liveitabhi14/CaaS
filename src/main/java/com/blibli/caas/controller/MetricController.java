@@ -17,8 +17,10 @@ public class MetricController {
   private MetricService metricService;
 
   @GetMapping("/allNodes")
-  public ClusterNodesResponse getAllNodesMetric() {
+  public List<ClusterNodes> getAllNodesMetric() {
     List<ClusterNodes> clusterNodesList = metricService.getAllNodeInfo();
-    return ClusterNodesResponse.builder().cluserNodes(clusterNodesList).build();
+    System.out.println(System.currentTimeMillis());
+    return clusterNodesList;
+//    return ClusterNodesResponse.builder().cluserNodes(clusterNodesList).build();
   }
 }

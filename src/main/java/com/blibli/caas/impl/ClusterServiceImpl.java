@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ClusterServiceImpl implements ClusterService {
 
+  public static final String LOCALHOST = "127.0.0.1";
   @Autowired
   private ExecuteCommandOnRemoteMachineService executeCommandOnRemoteMachineService;
 
@@ -156,6 +157,12 @@ public class ClusterServiceImpl implements ClusterService {
      List<RedisURI> redisURI =
          RedisClusterURIUtil.toRedisURIs(URI.create(redisUriNode));
      RedisClusterClient redisClusterClient = RedisClusterClient.create(redisURI);
+     redisClusterClient.getPartitions().iterator().forEachRemaining(
+         redisClusterNode -> {
+           if(redisClusterNode.getUri().getHost().equals(LOCALHOST)) {
+             redisClusterNode.getUri().setHost(RedisURI.create(redisUriNode).getHost());
+           }
+         });
      StatefulRedisClusterConnection<String, String> connection = redisClusterClient.connect();
      return connection.getPartitions().getPartitions();
    } catch (Exception e) {

@@ -17,10 +17,13 @@ public class ClusterNodes implements Serializable {
 
   private String nodeHostPort;
   private String nodeId;
-  private BitSet slots;
-  private long totalMemory;
+  private long slots;
+  private Double memoryUsage;
   private long usedMemory;
+  private long totalMemory;
   private String masterNodeHostPort;
   private boolean isSlave;
+  private String role;
+  private long currentTime;
 
 }
