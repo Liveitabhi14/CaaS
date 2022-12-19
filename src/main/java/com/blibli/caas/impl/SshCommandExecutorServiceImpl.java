@@ -16,12 +16,11 @@ import java.io.PrintStream;
 @Slf4j
 public class SshCommandExecutorServiceImpl implements SshCommandExecutorService {
 
-  @Value("${caas.ssh.command.execution.timeout}")
-  private int commandExecutionTimeout;
-
+  @Value("${caas.default.ssh.command.execution.timeout}")
+  private int defaultCommandExecutionTimeout;
   @Override
   public String executeCommandOnRemoteMachineViaSSHUsingJSchLibrary(String host, Integer port,
-      String username, String password, String command) {
+      String username, String password, String command, Integer commandExecutionTimeout) {
 
     StringBuilder response = new StringBuilder();
     Session session;
@@ -50,8 +49,6 @@ public class SshCommandExecutorServiceImpl implements SshCommandExecutorService 
           if (i < 0)
             break;
           String str = new String(bt, 0, i);
-
-          log.info("Command execution response via JSch library : {}", response);
           response.append(str);
         }
         if (channel.isClosed())
@@ -61,9 +58,18 @@ public class SshCommandExecutorServiceImpl implements SshCommandExecutorService 
         channel.disconnect();
         session.disconnect();
       }
+      log.info("Command execution response via JSch library : {}", response);
     } catch (Exception e) {
       log.error("Encountered exception while executing command : {}", e.getMessage(), e);
     }
     return response.toString();
   }
+
+  @Override
+  public String executeCommandOnRemoteMachineViaSSHUsingJSchLibrary(String host, Integer port,
+      String username, String password, String command) {
+    return executeCommandOnRemoteMachineViaSSHUsingJSchLibrary(host, port, username, password,
+        command, defaultCommandExecutionTimeout);
+  }
+
 }

@@ -1,11 +1,16 @@
 package com.blibli.caas.controller;
 
+import com.blibli.caas.DTO.NodeStats;
 import com.blibli.caas.service.ClusterService;
+import com.blibli.caas.service.MetricService;
+import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 
 @RestController
@@ -14,6 +19,9 @@ public class ClusterController {
 
   @Autowired
   private ClusterService clusterService;
+
+  @Autowired
+  private MetricService metricService;
 
   @GetMapping(value = "/addNode")
   public String addNodeToCluster(@RequestParam String newRedisHost,
@@ -43,9 +51,9 @@ public class ClusterController {
 
   @GetMapping(value = "/deleteNode")
   public String deleteNodeFromCluster(@RequestParam String clusterHost,
-      @RequestParam String clusterPort, @RequestParam String nodeId, @RequestParam String username,
+      @RequestParam String clusterPort, @RequestParam String deleteNodeHost, @RequestParam Integer deleteNodePort, @RequestParam String username,
       @RequestParam String password) {
-    return clusterService.deleteNodeFromCluster(clusterHost, clusterPort, nodeId, username,
+    return clusterService.deleteNodeFromCluster(clusterHost, clusterPort, deleteNodeHost, deleteNodePort, username,
         password);
   }
 
@@ -60,9 +68,26 @@ public class ClusterController {
     return clusterService.getNodeIdInCluster(clusterHost, clusterPort);
   }
 
-  @GetMapping(value = "hashSlot/countInNode")
+  @GetMapping(value = "/hashSlot/countInNode")
   public Integer countHashSlotsInNode(@RequestParam String clusterHost,
       @RequestParam Integer clusterPort, @RequestParam String nodeId) {
     return clusterService.countSlotsInNode(clusterHost, clusterPort, nodeId);
   }
+
+  @GetMapping(value = "/ExecuteNodeInfo")
+  public String executeNodeInfo(@RequestParam String username,@RequestParam String password){
+    List<NodeStats> redisClusterNodes = metricService.checkNodeMemory(username,password, false);
+    return "true";
+  }
+
+  @GetMapping(value = "/resetHard")
+  public String resetHard(@RequestParam String clusterHost, @RequestParam Integer clusterPort) {
+    return clusterService.clusterResetHard(clusterHost,clusterPort);
+  }
+
+  @GetMapping(value = "/flushDb")
+  public String flushDb(@RequestParam String clusterHost, @RequestParam Integer clusterPort) {
+    return clusterService.flushDb(clusterHost,clusterPort);
+  }
+
 }
