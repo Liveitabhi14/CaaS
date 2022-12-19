@@ -5,6 +5,7 @@ import com.blibli.caas.DTO.NodeStats;
 import com.blibli.caas.service.ClusterService;
 import com.blibli.caas.service.ExecuteCommandOnRemoteMachineService;
 import com.blibli.caas.service.MetricService;
+import io.lettuce.core.RedisURI;
 import io.lettuce.core.cluster.models.partitions.RedisClusterNode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +42,8 @@ public class MetricServiceImpl implements MetricService {
   @Autowired
   private ExecuteCommandOnRemoteMachineService executeCommandOnRemoteMachineService;
 
+  @Value("${redis.uri.node}")
+  private String redisUriNode;
   @Value("${ssh.username}")
   private String userName;
 
@@ -78,6 +81,12 @@ public class MetricServiceImpl implements MetricService {
   private static final String USED_MEMORY = "used_memory";
   private static final String TOTAL_MEMORY = "maxmemory";
   private static final String USED_CPU = "used_cpu_user";
+  private static final String INSTANTANEOUS_OPS_PER_SEC = "instantaneous_ops_per_sec";
+  private static final String INSTANTANEOUS_INPUT_KBPS = "instantaneous_input_kbps";
+  private static final String INSTANTANEOUS_OUTPUT_KBPS = "instantaneous_output_kbps";
+  private static final String KEYSPACE_MISSES = "keyspace_misses";
+  private static final String KEYSPACE_HITS = "keyspace_hits";
+
 
   @Override
   public List<NodeStats> checkNodeMemory(String userName, String password, boolean isAllData) {
@@ -110,7 +119,7 @@ public class MetricServiceImpl implements MetricService {
             redisClusterNode.getUri().getPort());
         log.info(" host - {} and port - {} ", redisClusterNode.getUri().getHost(),
             redisClusterNode.getUri().getPort());
-        connection.sendCommand(Protocol.Command.INFO, "cpu", "memory", "Replication");
+        connection.sendCommand(Protocol.Command.INFO, "cpu", "memory", "Replication","Stats");
 
           String info = connection.getBulkReply();
 
@@ -144,23 +153,27 @@ public class MetricServiceImpl implements MetricService {
   }
 
 
-
-
   private List<ClusterNodes> createClusterNodes(List<NodeStats> redisClusterNodes) {
     List<ClusterNodes> clusterNodesList = new ArrayList<>();
     for (NodeStats nodeStats : redisClusterNodes) {
-      clusterNodesList.add(ClusterNodes.builder().nodeHostPort(nodeStats.getHost() + COLON + nodeStats.getPort())
-          .nodeId(nodeStats.getNodeId()).isSlave(nodeStats.isSlave())
-          .usedMemory(nodeStats.getUsedMemory()).totalMemory(nodeStats.getTotalMemory())
-          .masterNodeHostPort(nodeStats.isSlave() ? nodeStats.getMasterHost() + COLON + nodeStats.getMasterPort():
-              EMPTY_STRING).slots(
-              nodeStats.getSlots()).totalMemory(nodeStats.getTotalMemory()).memoryUsage(
-              getMemoryUsage(nodeStats)).role(nodeStats.isSlave() ? SLAVE : MASTER)
+      clusterNodesList.add(
+          ClusterNodes.builder().nodeHostPort(nodeStats.getHost() + COLON + nodeStats.getPort())
+              .nodeId(nodeStats.getNodeId()).isSlave(nodeStats.isSlave())
+              .usedMemory(nodeStats.getUsedMemory()).totalMemory(nodeStats.getTotalMemory())
+              .masterNodeHostPort(nodeStats.isSlave() ?
+                  nodeStats.getMasterHost() + COLON + nodeStats.getMasterPort() :
+                  EMPTY_STRING).slots(nodeStats.getSlots()).totalMemory(nodeStats.getTotalMemory())
+              .memoryUsage(getMemoryUsage(nodeStats)).role(nodeStats.isSlave() ? SLAVE : MASTER)
               .currentTime(System.currentTimeMillis())
-          .build());
+              .instantaneousOpsPerSec(nodeStats.getInstantaneousOpsPerSec())
+              .instantaneousInputKbps(nodeStats.getInstantaneousInputKbps())
+              .instantaneousOutputKbps(nodeStats.getInstantaneousOutputKbps())
+              .keyspaceHits(nodeStats.getKeyspaceHits())
+              .keyspaceMisses(nodeStats.getKeyspaceMisses()).build());
     }
     clusterNodesList.sort(Comparator.comparing(ClusterNodes::getNodeHostPort));
-    clusterNodesList.sort(Comparator.comparing(ClusterNodes::isSlave).thenComparing(ClusterNodes::getNodeHostPort));
+    clusterNodesList.sort(
+        Comparator.comparing(ClusterNodes::isSlave).thenComparing(ClusterNodes::getNodeHostPort));
     return clusterNodesList;
   }
 
@@ -250,21 +263,50 @@ public class MetricServiceImpl implements MetricService {
         case TOTAL_MEMORY:
           nodeStats.setTotalMemory(
               Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
+          break;
         case USED_CPU:
           nodeStats.setUsedCPU(
               Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
           break;
         case ROLE:
-          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replace("\r", "")));
+          nodeStats.setSlave(!MASTER.equals(statSplit.get(1).replace("(\\r|\\n|\\t)", "")));
           break;
         case MASTER_HOST:
-          nodeStats.setMasterHost(statSplit.get(1).replace("\r", ""));
+          nodeStats.setMasterHost(getMasterHostMethod(statSplit.get(1).replace("(\\r|\\n|\\t)", "")));
           break;
         case MASTER_PORT:
-          nodeStats.setMasterPort(statSplit.get(1).replace("\r", ""));
+          nodeStats.setMasterPort(statSplit.get(1).replace("(\\r|\\n|\\t)", ""));
+          break;
+        case INSTANTANEOUS_OPS_PER_SEC:
+          nodeStats.setInstantaneousOpsPerSec(
+              Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
+          break;
+        case INSTANTANEOUS_INPUT_KBPS:
+          nodeStats.setInstantaneousInputKbps(
+              Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
+          break;
+        case INSTANTANEOUS_OUTPUT_KBPS:
+          nodeStats.setInstantaneousOutputKbps(
+              Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
+          break;
+        case KEYSPACE_HITS:
+          nodeStats.setKeyspaceHits(
+              Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
+          break;
+        case KEYSPACE_MISSES:
+          nodeStats.setKeyspaceMisses(
+              Double.parseDouble(statSplit.get(1).replaceAll("(\\r|\\n|\\t)", "")));
           break;
 
       }
     }
   }
+
+  private String getMasterHostMethod(String replaceHost) {
+    if(replaceHost.equals("127.0.0.1")) {
+      return RedisURI.create(redisUriNode).getHost();
+    }
+    return replaceHost;
+  }
+
 }

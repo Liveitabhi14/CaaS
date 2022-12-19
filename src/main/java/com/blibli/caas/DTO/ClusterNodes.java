@@ -25,5 +25,10 @@ public class ClusterNodes implements Serializable {
   private boolean isSlave;
   private String role;
   private long currentTime;
+  private double instantaneousOpsPerSec;
+  private double instantaneousInputKbps;
+  private double instantaneousOutputKbps;
+  private double keyspaceMisses;
+  private double keyspaceHits;
 
 }
