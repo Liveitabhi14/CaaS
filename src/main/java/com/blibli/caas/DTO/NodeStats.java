@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @Builder
@@ -19,4 +20,8 @@ public class NodeStats implements Serializable {
   private double totalMemory;
   private double usedCPU;
   private double totalCPU;
+  private boolean isSlave;
+  private String masterHost;
+  private String masterPort;
+  private int slots;
 }
