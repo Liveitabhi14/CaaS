@@ -20,6 +20,7 @@ import redis.clients.jedis.JedisCluster;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -152,22 +153,22 @@ public class ClusterServiceImpl implements ClusterService {
     }
   }
  public  List<RedisClusterNode> getClusterNode(){
-   try  {
+
      log.info("Connection to via redis cluster client to get cluster nodes");
      List<RedisURI> redisURI =
          RedisClusterURIUtil.toRedisURIs(URI.create(redisUriNode));
      RedisClusterClient redisClusterClient = RedisClusterClient.create(redisURI);
-     redisClusterClient.getPartitions().iterator().forEachRemaining(
-         redisClusterNode -> {
-           if(redisClusterNode.getUri().getHost().equals(LOCALHOST)) {
-             redisClusterNode.getUri().setHost(RedisURI.create(redisUriNode).getHost());
-           }
-         });
+   try (redisClusterClient) {
+     redisClusterClient.getPartitions().iterator().forEachRemaining(redisClusterNode -> {
+       if (redisClusterNode.getUri().getHost().equals(LOCALHOST)) {
+         redisClusterNode.getUri().setHost(RedisURI.create(redisUriNode).getHost());
+       }
+     });
      StatefulRedisClusterConnection<String, String> connection = redisClusterClient.connect();
      return connection.getPartitions().getPartitions();
    } catch (Exception e) {
      log.error("Error connecting to cluster via RedisUri : {}; {}", e, e.getMessage());
-     return null;
+     return Collections.emptyList();
    }
  }
   @Override
