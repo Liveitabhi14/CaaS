@@ -35,8 +35,12 @@ public class ClusterServiceImpl implements ClusterService {
   @Autowired
   private ExecuteCommandOnRemoteMachineService executeCommandOnRemoteMachineService;
 
-  @Value("${redis.uri.node}")
-  private String redisUriNode;
+
+  @Value("${primary.redis.uri.host}")
+  private String primaryRedisHost;
+
+  @Value("${primary.redis.uri.port}")
+  private String primaryRedisPort;
 
   @Value("${caas.add.node.ssh.command.execution.timeout}")
   private int addNodeCommandExecutionTimeout;
@@ -106,16 +110,22 @@ public class ClusterServiceImpl implements ClusterService {
 
   @Override
   public String deleteNodeFromCluster(String clusterHost, String clusterPort, String deleteNodeHost,
-      Integer deleteNodePort, String username, String password) {
+      Integer deleteNodePort, String username, String password,boolean isSlave) {
+
 
     String sourceNodeId = getNodeIdInCluster(deleteNodeHost, deleteNodePort);
+    String reshardOutput = null;
+    String clusterRebalanceOutput = null;
 
     //Reshard all slots from node to be deleted to a master
-    String targetNodeId = getNodeIdInCluster(clusterHost, Integer.parseInt(clusterPort));
-    int noOfSlots = countSlotsInNode(clusterHost, Integer.parseInt(clusterPort), sourceNodeId);
-    String reshardOutput =
-        reshardHashSlotsBetweenNodes(clusterHost, clusterPort, sourceNodeId, targetNodeId, noOfSlots,
-            username, password);
+
+    if (!isSlave) {
+      String targetNodeId = getNodeIdInCluster(clusterHost, Integer.parseInt(clusterPort));
+      int noOfSlots = countSlotsInNode(clusterHost, Integer.parseInt(clusterPort), sourceNodeId);
+       reshardOutput =
+          reshardHashSlotsBetweenNodes(clusterHost, clusterPort, sourceNodeId, targetNodeId,
+              noOfSlots, username, password);
+    }
 
     //Delete the node
     String deleteNodeCommand =
@@ -127,13 +137,18 @@ public class ClusterServiceImpl implements ClusterService {
             clusterHost, clusterPort, username, password,deleteNodeCommandExecutionTimeout);
 
     //Rebalance
-    String clusterRebalanceOutput =
-        clusterRebalance(clusterHost, clusterPort, false, username, password);
+    if (!isSlave) {
+       clusterRebalanceOutput =
+          clusterRebalance(clusterHost, clusterPort, false, username, password);
+    }
 
     //Cluster reset hard for deleted node
-    String nodeResetOutput = clusterResetHard(deleteNodeHost, deleteNodePort);
+    if (!isSlave) {
+      String nodeResetOutput = clusterResetHard(deleteNodeHost, deleteNodePort);
+      return reshardOutput + deleteNodeOutput + clusterRebalanceOutput + nodeResetOutput;
 
-    return reshardOutput + deleteNodeOutput + clusterRebalanceOutput + nodeResetOutput;
+    }
+    return deleteNodeOutput;
   }
 
   @Override
@@ -158,9 +173,8 @@ public class ClusterServiceImpl implements ClusterService {
  public  List<RedisClusterNode> getClusterNode(){
 
      log.info("Connection to via redis cluster client to get cluster nodes");
-     List<RedisURI> redisURI =
-         RedisClusterURIUtil.toRedisURIs(URI.create(redisUriNode));
-     RedisClusterClient redisClusterClient = RedisClusterClient.create(redisURI);
+   String redisUriNode = "redis://" + primaryRedisHost + ":" + primaryRedisPort;
+   RedisClusterClient redisClusterClient = RedisClusterClient.create(redisUriNode);
    try (redisClusterClient) {
      redisClusterClient.getPartitions().iterator().forEachRemaining(redisClusterNode -> {
        if (redisClusterNode.getUri().getHost().equals(LOCALHOST)) {

@@ -52,9 +52,9 @@ public class ClusterController {
   @GetMapping(value = "/deleteNode")
   public String deleteNodeFromCluster(@RequestParam String clusterHost,
       @RequestParam String clusterPort, @RequestParam String deleteNodeHost, @RequestParam Integer deleteNodePort, @RequestParam String username,
-      @RequestParam String password) {
+      @RequestParam String password, @RequestParam boolean isSlave) {
     return clusterService.deleteNodeFromCluster(clusterHost, clusterPort, deleteNodeHost, deleteNodePort, username,
-        password);
+        password,isSlave);
   }
 
   @GetMapping(value = "/getInfo")
