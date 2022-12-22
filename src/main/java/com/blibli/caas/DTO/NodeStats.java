@@ -29,4 +29,5 @@ public class NodeStats implements Serializable {
   private double keyspaceMisses;
   private double keyspaceHits;
   private int slots;
+  private String masterId;
 }
